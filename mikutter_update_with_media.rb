@@ -9,6 +9,7 @@ Plugin.create :update_with_media do
     c.oauth_token = UserConfig[:twitter_token]
     c.oauth_token_secret = UserConfig[:twitter_secret]
   end
+  @client = Twitter.client
 
   command(:update_with_media,
           name: '画像付きで投稿する',
@@ -64,7 +65,7 @@ Plugin.create :update_with_media do
       if filename
         message = Plugin.create(:gtk).widgetof(opt.widget).widget_post.buffer.text
         Thread.new {
-          Twitter.update_with_media(message, File.new(filename))
+          @client.update_with_media(message, File.new(filename))
         }
         Plugin.create(:gtk).widgetof(opt.widget).widget_post.buffer.text = ''
       end
