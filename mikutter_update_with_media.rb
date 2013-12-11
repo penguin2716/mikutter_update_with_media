@@ -3,13 +3,22 @@ require 'twitter'
 
 Plugin.create :update_with_media do
 
-  Twitter.configure do |c|
-    c.consumer_key = CHIConfig::TWITTER_CONSUMER_KEY
-    c.consumer_secret = CHIConfig::TWITTER_CONSUMER_SECRET
-    c.oauth_token = UserConfig[:twitter_token]
-    c.oauth_token_secret = UserConfig[:twitter_secret]
+  if defined? Twitter::REST
+    @client = Twitter::REST::Client.new do |c|
+      c.consumer_key = CHIConfig::TWITTER_CONSUMER_KEY
+      c.consumer_secret = CHIConfig::TWITTER_CONSUMER_SECRET
+      c.oauth_token = UserConfig[:twitter_token]
+      c.oauth_token_secret = UserConfig[:twitter_secret]
+    end
+  else
+    Twitter.configure do |c|
+      c.consumer_key = CHIConfig::TWITTER_CONSUMER_KEY
+      c.consumer_secret = CHIConfig::TWITTER_CONSUMER_SECRET
+      c.oauth_token = UserConfig[:twitter_token]
+      c.oauth_token_secret = UserConfig[:twitter_secret]
+    end
+    @client = Twitter.client
   end
-  @client = Twitter.client
 
   command(:update_with_media,
           name: '画像付きで投稿する',
