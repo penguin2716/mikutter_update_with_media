@@ -3,21 +3,32 @@ require 'twitter'
 
 Plugin.create :update_with_media do
 
-  if defined? Twitter::REST
-    @client = Twitter::REST::Client.new do |c|
-      c.consumer_key = CHIConfig::TWITTER_CONSUMER_KEY
-      c.consumer_secret = CHIConfig::TWITTER_CONSUMER_SECRET
-      c.oauth_token = UserConfig[:twitter_token]
-      c.oauth_token_secret = UserConfig[:twitter_secret]
+  @clients = {}
+
+  unless UserConfig[:twitter_secret] # mikutter >= 3.0.0
+    @clients[Service.primary.idname] = Twitter::REST::Client.new do |c|
+      c.consumer_key       = Service.primary.twitter.consumer_key
+      c.consumer_secret    = Service.primary.twitter.consumer_secret
+      c.oauth_token        = Service.primary.twitter.a_token
+      c.oauth_token_secret = Service.primary.twitter.a_secret
     end
-  else
-    Twitter.configure do |c|
-      c.consumer_key = CHIConfig::TWITTER_CONSUMER_KEY
-      c.consumer_secret = CHIConfig::TWITTER_CONSUMER_SECRET
-      c.oauth_token = UserConfig[:twitter_token]
-      c.oauth_token_secret = UserConfig[:twitter_secret]
+  else # mikutter < 3.0.0
+    if defined? Twitter::REST
+      @clients[Service.primary.idname] = Twitter::REST::Client.new do |c|
+        c.consumer_key       = CHIConfig::TWITTER_CONSUMER_KEY
+        c.consumer_secret    = CHIConfig::TWITTER_CONSUMER_SECRET
+        c.oauth_token        = UserConfig[:twitter_token]
+        c.oauth_token_secret = UserConfig[:twitter_secret]
+      end
+    else
+      Twitter.configure do |c|
+        c.consumer_key       = CHIConfig::TWITTER_CONSUMER_KEY
+        c.consumer_secret    = CHIConfig::TWITTER_CONSUMER_SECRET
+        c.oauth_token        = UserConfig[:twitter_token]
+        c.oauth_token_secret = UserConfig[:twitter_secret]
+      end
+      @clients[Service.primary.idname] = Twitter.client
     end
-    @client = Twitter.client
   end
 
   command(:update_with_media,
@@ -74,7 +85,7 @@ Plugin.create :update_with_media do
       if filename
         message = Plugin.create(:gtk).widgetof(opt.widget).widget_post.buffer.text
         Thread.new {
-          @client.update_with_media(message, File.new(filename))
+          @clients[Service.primary.idname].update_with_media(message, File.new(filename))
         }
         Plugin.create(:gtk).widgetof(opt.widget).widget_post.buffer.text = ''
       end
