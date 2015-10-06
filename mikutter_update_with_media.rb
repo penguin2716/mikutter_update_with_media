@@ -95,5 +95,34 @@ Plugin.create :update_with_media do
     end
   end
 
+    command(:update_with_media_on_clipboard,
+          name: 'クリップボードの画像を追加して投稿する',
+          condition: lambda{ |opt| true },
+          visible: true,
+          role: :postbox) do |opt|
+    begin
+
+      filename = nil
+
+      pixbuf = Gtk::Clipboard.get(Gdk::Selection::CLIPBOARD).wait_for_image
+      unless pixbuf.nil?
+        filename = File.join('/tmp', `uuidgen`.chomp + '.png')
+        pixbuf.save(filename, 'png')
+      end
+
+      if filename
+        message = Plugin.create(:gtk).widgetof(opt.widget).widget_post.buffer.text
+        Thread.new {
+          @clients[Service.primary.idname].update_with_media(message, File.new(filename))
+          File.delete(filename)
+        }
+        Plugin.create(:gtk).widgetof(opt.widget).widget_post.buffer.text = ''
+      end
+
+    rescue Exception => e
+      Plugin.call(:update, nil, [Message.new(message: e.to_s, system: true)])
+    end
+  end
+
 end
 
