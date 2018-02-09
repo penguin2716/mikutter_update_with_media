@@ -2,6 +2,7 @@
 require 'twitter'
 
 Plugin.create :update_with_media do
+  twitter_version_is_over_6 = Gem::Version.new('6.0.0') <= Gem::Version.new(Twitter::Version.to_s)
 
   @clients = {}
 
@@ -9,23 +10,39 @@ Plugin.create :update_with_media do
     @clients[Service.primary.idname] = Twitter::REST::Client.new do |c|
       c.consumer_key       = Service.primary.twitter.consumer_key
       c.consumer_secret    = Service.primary.twitter.consumer_secret
-      c.oauth_token        = Service.primary.twitter.a_token
-      c.oauth_token_secret = Service.primary.twitter.a_secret
+
+      if twitter_version_is_over_6
+        c.access_token        = Service.primary.twitter.a_token
+        c.access_token_secret = Service.primary.twitter.a_secret
+      else
+        c.oauth_token        = Service.primary.twitter.a_token
+        c.oauth_token_secret = Service.primary.twitter.a_secret
+      end
     end
   else # mikutter < 3.0.0
     if defined? Twitter::REST
       @clients[Service.primary.idname] = Twitter::REST::Client.new do |c|
         c.consumer_key       = CHIConfig::TWITTER_CONSUMER_KEY
         c.consumer_secret    = CHIConfig::TWITTER_CONSUMER_SECRET
-        c.oauth_token        = UserConfig[:twitter_token]
-        c.oauth_token_secret = UserConfig[:twitter_secret]
+        if twitter_version_is_over_6
+          c.access_token        = UserConfig[:twitter_token]
+          c.access_token_secret = UserConfig[:twitter_secret]
+        else
+          c.oauth_token        = UserConfig[:twitter_token]
+          c.oauth_token_secret = UserConfig[:twitter_secret]
+        end
       end
     else
       Twitter.configure do |c|
         c.consumer_key       = CHIConfig::TWITTER_CONSUMER_KEY
         c.consumer_secret    = CHIConfig::TWITTER_CONSUMER_SECRET
-        c.oauth_token        = UserConfig[:twitter_token]
-        c.oauth_token_secret = UserConfig[:twitter_secret]
+        if twitter_version_is_over_6
+          c.access_token        = UserConfig[:twitter_token]
+          c.access_token_secret = UserConfig[:twitter_secret]
+        else
+          c.oauth_token        = UserConfig[:twitter_token]
+          c.oauth_token_secret = UserConfig[:twitter_secret]
+        end
       end
       @clients[Service.primary.idname] = Twitter.client
     end
@@ -123,6 +140,4 @@ Plugin.create :update_with_media do
       Plugin.call(:update, nil, [Message.new(message: e.to_s, system: true)])
     end
   end
-
 end
-
